@@ -11,7 +11,7 @@ import SwiftUI
 struct KBTimerApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TimerView()
         }
     }
 }
