@@ -8,8 +8,19 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import SwiftData
+
 
 struct CircularProgressView: View {
+    
+    @Query(sort: [SortDescriptor(\WorkoutModel.order)]) var workouts: [WorkoutModel]
+    
+    var firstIncompleteWorkout: WorkoutModel? {
+        return workouts.first { workout in
+            return workout.completed == false
+        }
+    }
+    
     @State private var audioPlayer: AVAudioPlayer?
     private var progress: CGFloat {
         return max(0, min(1, timeRemaining / totalTime))
@@ -22,39 +33,82 @@ struct CircularProgressView: View {
     
     var body: some View {
         
-        ZStack {
-            // Background Circle
-            Circle()
-                .stroke(Color.gray.opacity(0.3), lineWidth: 42)
-                .frame(width: 300, height: 300)
+        VStack {
             
-            // Foreground Circle representing progress
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(Color.indigo, style: StrokeStyle(lineWidth: 35, lineCap: .round))
-                .frame(width: 300, height: 300)
-                .rotationEffect(.degrees(-90)) // Start from the top
-                .animation(.easeInOut(duration: 1.5), value: progress)
+            HStack {
+                VStack(alignment: .leading) {
+                    
+                    Grid(
+                        alignment: .leading,
+                        horizontalSpacing: 25,
+                        verticalSpacing: 16) {
+                            GridRow {
+                                Text("Set")
+                                    .font(.title2.weight(.medium))
+                                    .frame(width: 50, alignment: .leading)
+                                ForEach(Array(firstIncompleteWorkout?.sets ?? [0]), id: \.self) { set in
+                                    Text("\(set)")
+                                        .font(.title3)
+                                }
+                            }
+                            
+                            GridRow {
+                                Text("Rest")
+                                    .font(.title2.weight(.medium))
+                                    .frame(width: 50, alignment: .leading)
+                                ForEach(Array(firstIncompleteWorkout?.rests ?? [0]), id: \.self) { rest in
+                                    Text("\(rest)")
+                                        .font(.title3)
+                                    
+                                }
+                                
+                            }
+                        }
+                    
+                    
+                }
+                Spacer()
+            }
             
-            // Percentage Label
-            Text(timerStarted ? String(format: "%.0f", timeRemaining) : "Tap to begin")
-                .font(.title)
-                .foregroundStyle(.secondary)
-                .shadow(radius: 10, x: -2, y: 2)
-        }
-        .onTapGesture(count: 2) {
-            resetTimer()
-        }
-        
-        .onTapGesture {
-            if !timerStarted {
-                startTimer()
-                timerStarted = true
-            } else {
-                stopTimer()
-                timerStarted = false
+            Spacer()
+            
+            ZStack {
+                // Background Circle
+                Circle()
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 42)
+                    .frame(width: 300, height: 300)
+                
+                // Foreground Circle representing progress
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.indigo, style: StrokeStyle(lineWidth: 35, lineCap: .round))
+                    .frame(width: 300, height: 300)
+                    .rotationEffect(.degrees(-90)) // Start from the top
+                    .animation(.easeInOut(duration: 1.5), value: progress)
+                
+                // Percentage Label
+                Text(timerStarted ? String(format: "%.0f", timeRemaining) : "Tap to begin")
+                    .font(.title)
+                    .foregroundStyle(.secondary)
+                    .shadow(radius: 10, x: -2, y: 2)
+            }
+            .onTapGesture(count: 2) {
+                resetTimer()
+            }
+            
+            .onTapGesture {
+                if !timerStarted {
+                    startTimer()
+                    timerStarted = true
+                } else {
+                    stopTimer()
+                    timerStarted = false
+                    
+                }
                 
             }
+            
+            Spacer()
             
         }
         
@@ -132,4 +186,5 @@ struct TimerView: View {
 
 #Preview {
     TimerView()
+        .modelContainer(WorkoutModel.preview)
 }
