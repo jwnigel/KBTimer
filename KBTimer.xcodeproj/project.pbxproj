@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D8D5FB6D2C6467CD00B3AE7F /* WorkoutSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D5FB6C2C6467CD00B3AE7F /* WorkoutSet.swift */; };
 		D8D8C0FF2C5D9E05007CDBEE /* KBTimerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D8C0FE2C5D9E05007CDBEE /* KBTimerApp.swift */; };
 		D8D8C1012C5D9E05007CDBEE /* TimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D8C1002C5D9E05007CDBEE /* TimerView.swift */; };
 		D8D8C1032C5D9E06007CDBEE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D8D8C1022C5D9E06007CDBEE /* Assets.xcassets */; };
@@ -20,6 +21,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		D8D5FB6C2C6467CD00B3AE7F /* WorkoutSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSet.swift; sourceTree = "<group>"; };
 		D8D8C0FB2C5D9E04007CDBEE /* KBTimer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KBTimer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8D8C0FE2C5D9E05007CDBEE /* KBTimerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KBTimerApp.swift; sourceTree = "<group>"; };
 		D8D8C1002C5D9E05007CDBEE /* TimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerView.swift; sourceTree = "<group>"; };
@@ -65,6 +67,7 @@
 			children = (
 				D8D8C0FE2C5D9E05007CDBEE /* KBTimerApp.swift */,
 				D8D8C1002C5D9E05007CDBEE /* TimerView.swift */,
+				D8D5FB6C2C6467CD00B3AE7F /* WorkoutSet.swift */,
 				D8D8C1162C5DC965007CDBEE /* WorkoutView.swift */,
 				D8D8C1182C5FD2F7007CDBEE /* WorkoutModel.swift */,
 				D8D8C10C2C5DC2F6007CDBEE /* brightPing1.mp3 */,
@@ -159,6 +162,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8D5FB6D2C6467CD00B3AE7F /* WorkoutSet.swift in Sources */,
 				D8D8C1012C5D9E05007CDBEE /* TimerView.swift in Sources */,
 				D8D8C1192C5FD2F7007CDBEE /* WorkoutModel.swift in Sources */,
 				D8D8C1172C5DC965007CDBEE /* WorkoutView.swift in Sources */,

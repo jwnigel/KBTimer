@@ -14,7 +14,7 @@ struct WorkoutView: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            Text("All Workouts")
+            Text("Long Cycle")
                 .font(.title).fontWeight(.medium)
             ScrollView {
                 ForEach(workouts) { workout in

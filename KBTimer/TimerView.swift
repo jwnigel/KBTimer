@@ -11,7 +11,7 @@ import AVFoundation
 import SwiftData
 
 
-struct CircularProgressView: View {
+struct TimerView: View {
     
     @Query(sort: [SortDescriptor(\WorkoutModel.order)]) var workouts: [WorkoutModel]
     
@@ -21,15 +21,17 @@ struct CircularProgressView: View {
         }
     }
     
+    var firstIncompleteSet: WorkoutSet? {
+        return firstIncompleteWorkout?.sets.first { $0.isCompleted == false }
+    }
+    
     @State private var audioPlayer: AVAudioPlayer?
     private var progress: CGFloat {
-        return max(0, min(1, timeRemaining / totalTime))
+        return max(0, min(1, timeRemaining / CGFloat(firstIncompleteSet!.minutes)))
     }
-    @Binding var timerStarted: Bool
-    @State var totalTime: CGFloat
-    @State var timeRemaining: CGFloat
+//    @State var timeRemaining: CGFloat
     @State private var timerSubscription: Cancellable? = nil
-    
+    @State var timerStarted: Bool = false
     
     var body: some View {
         
@@ -37,7 +39,6 @@ struct CircularProgressView: View {
             
             HStack {
                 VStack(alignment: .leading) {
-                    
                     Grid(
                         alignment: .leading,
                         horizontalSpacing: 25,
@@ -46,9 +47,20 @@ struct CircularProgressView: View {
                                 Text("Set")
                                     .font(.title2.weight(.medium))
                                     .frame(width: 50, alignment: .leading)
-                                ForEach(Array(firstIncompleteWorkout?.sets ?? [0]), id: \.self) { set in
-                                    Text("\(set)")
-                                        .font(.title3)
+                                ForEach(Array(firstIncompleteWorkout?.sets.sorted {
+                                    $0.isCompleted && !$1.isCompleted
+                                } ?? [WorkoutSet(minutes: 5, completed: false)]), id: \.self) { set in
+                                    ZStack {
+                                        Circle()
+                                            .stroke(set.isCompleted ? .indigo : Color(.white), 
+                                                    lineWidth: set.isCompleted ? 4 : 8)
+                                            .fill(.indigo.opacity(0.3))
+                                            .frame(width: 42)
+                                        Text("\(set.minutes)")
+                                            .font(.title3)
+                                            
+                                    }
+
                                 }
                             }
                             
@@ -69,20 +81,23 @@ struct CircularProgressView: View {
                 }
                 Spacer()
             }
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+            
             
             Spacer()
             
             ZStack {
                 // Background Circle
                 Circle()
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 42)
-                    .frame(width: 300, height: 300)
+                    .stroke(Color.yellow, lineWidth: 42)
+                    .frame(width: 290, height: 290)
                 
                 // Foreground Circle representing progress
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(Color.indigo, style: StrokeStyle(lineWidth: 35, lineCap: .round))
-                    .frame(width: 300, height: 300)
+                    .stroke(Color.indigo, style: StrokeStyle(lineWidth: 30, lineCap: .round))
+                    .frame(width: 290, height: 290)
                     .rotationEffect(.degrees(-90)) // Start from the top
                     .animation(.easeInOut(duration: 1.5), value: progress)
                 
@@ -92,6 +107,8 @@ struct CircularProgressView: View {
                     .foregroundStyle(.secondary)
                     .shadow(radius: 10, x: -2, y: 2)
             }
+
+
             .onTapGesture(count: 2) {
                 resetTimer()
             }
@@ -113,6 +130,7 @@ struct CircularProgressView: View {
         }
         
     }
+    
     
     
     func startTimer() {
@@ -144,7 +162,7 @@ struct CircularProgressView: View {
     }
     
     func resetTimer() {
-        timeRemaining = totalTime
+        timeRemaining = CGFloat(firstIncompleteSet!.minutes)
         startTimer()
     }
     
@@ -163,23 +181,6 @@ struct CircularProgressView: View {
             print("Error playing sound: \(error.localizedDescription)")
         }
     }
-}
-
-struct TimerView: View {
-    
-    @State var timerStarted: Bool = false
-    
-    var body: some View {
-        VStack {
-            CircularProgressView(
-                timerStarted: $timerStarted,
-                totalTime: 60,
-                timeRemaining: 60
-            )
-        }
-        .padding()
-    }
-    
 }
 
 
