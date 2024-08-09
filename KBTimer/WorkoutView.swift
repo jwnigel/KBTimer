@@ -9,60 +9,60 @@ import SwiftUI
 import SwiftData
 
 struct WorkoutView: View {
-    @Query(sort: \WorkoutModel.order) var workouts: [WorkoutModel]
+    //    @Query(sort: \WorkoutModel.order) var workouts: [WorkoutModel]
     
+    let workoutManager = WorkoutManager(
+        workoutSets: [TimedSet(minutes: 1), TimedSet(minutes: 1)],
+        restSets: [TimedSet(minutes: 2)]
+    )
     
     var body: some View {
         VStack(alignment: .leading) {
             Text("Long Cycle")
                 .font(.title).fontWeight(.medium)
             ScrollView {
-                ForEach(workouts) { workout in
-                    
-                    HStack {
-                        VStack(alignment: .leading) {
-                            
-                            Grid(
-                                alignment: .leading,
-                                horizontalSpacing: 25,
-                                verticalSpacing: 16) {
-                                    GridRow {
-                                        Text("Set")
-                                            .font(.title2.weight(.medium))
-                                            .frame(width: 50, alignment: .leading)
-                                        ForEach(Array(workout.sets), id: \.self) { set in
-                                            Text("\(set)")
-                                                .font(.title3)
-                                        }
-                                    }
-                                    
-                                    GridRow {
-                                        Text("Rest")
-                                            .font(.title2.weight(.medium))
-                                            .frame(width: 50, alignment: .leading)
-                                        ForEach(Array(workout.rests), id: \.self) { rest in
-                                            Text("\(rest)")
-                                                .font(.title3)
-                                            
-                                        }
-                                        
+                HStack {
+                    VStack(alignment: .leading) {
+                        
+                        Grid(
+                            alignment: .leading,
+                            horizontalSpacing: 25,
+                            verticalSpacing: 16) {
+                                GridRow {
+                                    Text("Set")
+                                        .font(.title2.weight(.medium))
+                                        .frame(width: 50, alignment: .leading)
+                                    ForEach(Array(workoutManager.workoutSets), id: \.self) { set in
+                                        Text("\(set)")
+                                            .font(.title3)
                                     }
                                 }
-                            
-                            
-                        }
+                                
+                                GridRow {
+                                    Text("Rest")
+                                        .font(.title2.weight(.medium))
+                                        .frame(width: 50, alignment: .leading)
+                                    ForEach(Array(arrayLiteral: workoutManager.restSets), id: \.self) { rest in
+                                        Text("\(rest)")
+                                            .font(.title3)
+                                        
+                                    }
+                                    
+                                }
+                                
+                            }
                         Spacer()
-                        Image(systemName: workout.viewCompleted)
-                            .resizable()
-                            .scaledToFit()
-                            .padding(.vertical, 35)
-                            .padding(.trailing, 6)
-                        
+//                        Image(systemName: workout.viewCompleted)
+//                            .resizable()
+//                            .scaledToFit()
+//                            .padding(.vertical, 35)
+//                            .padding(.trailing, 6)
+//                        
                     }
                     .frame(width: 320, height: 85, alignment: .leading)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 5)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.indigo.opacity(workout.completed ? 0.6 : 0.18)))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.indigo.opacity(0.6)))
                 }
             }
         }
@@ -73,5 +73,5 @@ struct WorkoutView: View {
 
 #Preview {
     WorkoutView()
-        .modelContainer(WorkoutModel.preview)
+    //        .modelContainer(WorkoutModel.preview)
 }
