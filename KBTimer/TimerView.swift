@@ -19,6 +19,33 @@ struct TimerView: View {
     @Environment(WorkoutManager.self) private var workoutManager
     
     @State private var audioPlayer: AVAudioPlayer?
+<<<<<<< Updated upstream
+=======
+    
+    
+    //TODO -- Put progress logic in TimedSet extension
+    private var progress: CGFloat {
+        guard let currentSet = currentWorkout?.currentSet else {
+            return 0.1
+        }
+        return max(0, min(1, CGFloat(currentSet.secondsRemaining) / CGFloat(currentSet.minutes * 60)))
+    }
+    
+    private var formattedTime: String {
+        guard let currentSet = currentWorkout?.currentSet else {
+            return "00:00"
+        }
+        
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .positional
+        formatter.allowedUnits = [.minute, .second]
+        formatter.zeroFormattingBehavior = .dropLeading
+        
+        let totalSeconds = currentSet.secondsRemaining
+        return formatter.string(from: TimeInterval(totalSeconds)) ?? "00:00"
+    }
+    
+>>>>>>> Stashed changes
     @State private var timerSubscription: Cancellable? = nil
     @State var timerStarted: Bool = false
     
@@ -102,7 +129,11 @@ struct TimerView: View {
                     .animation(.easeInOut(duration: 1.5), value: progress)
                 
                 // Percentage Label
+<<<<<<< Updated upstream
                 Text(timerStarted ? String(format: "%.0f", workoutManager.currentSet!.secondsRemaining) : "Tap to begin")
+=======
+                Text(timerStarted ? formattedTime : "Tap to begin")
+>>>>>>> Stashed changes
                     .font(.title)
                     .foregroundStyle(.secondary)
                     .shadow(radius: 10, x: -2, y: 2)
