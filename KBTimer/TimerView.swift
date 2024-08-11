@@ -12,25 +12,24 @@ import SwiftData
 
 
 struct TimerView: View {
+
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: [SortDescriptor(\WorkoutModel.order)]) var workouts: [WorkoutModel]
+    @State var currentWorkout: WorkoutModel?
+    @State var currentWorkoutSet: TimedSet?
     
-//    @Query(sort: [SortDescriptor(\WorkoutModel.order)]) var workouts: [WorkoutModel]
-        
+    @State private var timerSubscription: Cancellable? = nil
+    @State var timerStarted: Bool = false
     
-    @Environment(WorkoutManager.self) private var workoutManager
+    init() {
+         if let firstWorkout = workouts.first(where: { !$0.isCompleted }) {
+             self._currentWorkout = State(initialValue: firstWorkout)
+             self._currentWorkoutSet = State(initialValue: firstWorkout.currentSet)
+         }
+     }
     
     @State private var audioPlayer: AVAudioPlayer?
-<<<<<<< Updated upstream
-=======
-    
-    
-    //TODO -- Put progress logic in TimedSet extension
-    private var progress: CGFloat {
-        guard let currentSet = currentWorkout?.currentSet else {
-            return 0.1
-        }
-        return max(0, min(1, CGFloat(currentSet.secondsRemaining) / CGFloat(currentSet.minutes * 60)))
-    }
-    
+        
     private var formattedTime: String {
         guard let currentSet = currentWorkout?.currentSet else {
             return "00:00"
@@ -44,27 +43,7 @@ struct TimerView: View {
         let totalSeconds = currentSet.secondsRemaining
         return formatter.string(from: TimeInterval(totalSeconds)) ?? "00:00"
     }
-    
->>>>>>> Stashed changes
-    @State private var timerSubscription: Cancellable? = nil
-    @State var timerStarted: Bool = false
-    
-//    var currentWorkout: WorkoutModel? {
-//        return workouts.first { workout in
-//            return workout.completed == false
-//        }
-//    }
-//    
-//    var currentSet: TimedSet {
-//        return (currentWorkout?.sets.first { $0.isCompleted == false })!
-//    }
-    
-    private var progress: CGFloat {
-        return CGFloat(max(0, min(1, Double(workoutManager.currentSet!.secondsRemaining) / Double(workoutManager.currentSet!.totalSeconds))))
-    }
-    
-    
-    
+
     var body: some View {
         
         VStack {
@@ -79,7 +58,7 @@ struct TimerView: View {
                                 Text("Set")
                                     .font(.title2.weight(.medium))
                                     .frame(width: 50, alignment: .leading)
-                                ForEach(Array(workoutManager.combinedSets)) { set in
+                                ForEach(Array(currentWorkout?.sets ?? [TimedSet(minutes: 0)])) { set in
                                     ZStack {
                                         Circle()
                                             .stroke(set.isCompleted ? .indigo : Color(.white), 
@@ -95,7 +74,7 @@ struct TimerView: View {
                                 Text("Rest")
                                     .font(.title2.weight(.medium))
                                     .frame(width: 50, alignment: .leading)
-                                ForEach(Array(workoutManager.restSets ?? [TimedSet(minutes: 0)]), id: \.self) { rest in
+                                ForEach(Array(currentWorkout?.rests ?? [TimedSet(minutes: 0)]), id: \.self) { rest in
                                     Text("\(rest)")
                                         .font(.title3)
                                     
@@ -122,18 +101,13 @@ struct TimerView: View {
                 
                 // Foreground Circle representing progress
                 Circle()
-                    .trim(from: 0, to: progress)
+                    .trim(from: 0, to: currentWorkoutSet?.progress ?? 0.5)
                     .stroke(Color.indigo, style: StrokeStyle(lineWidth: 30, lineCap: .round))
                     .frame(width: 290, height: 290)
                     .rotationEffect(.degrees(-90)) // Start from the top
-                    .animation(.easeInOut(duration: 1.5), value: progress)
+                    .animation(.easeInOut(duration: 1.5), value: currentWorkoutSet?.progress)
                 
-                // Percentage Label
-<<<<<<< Updated upstream
-                Text(timerStarted ? String(format: "%.0f", workoutManager.currentSet!.secondsRemaining) : "Tap to begin")
-=======
                 Text(timerStarted ? formattedTime : "Tap to begin")
->>>>>>> Stashed changes
                     .font(.title)
                     .foregroundStyle(.secondary)
                     .shadow(radius: 10, x: -2, y: 2)
@@ -146,58 +120,46 @@ struct TimerView: View {
             
             .onTapGesture {
                 if !timerStarted {
-                    workoutManager.startWorkout()
+                    startTimer()
                     timerStarted = true
                 } else {
-                    workoutManager.currentSet?.pause()
+                    pauseTimer()
                     timerStarted = false
                         
                     
                 }
-                
             }
             
             Spacer()
             
         }
         .padding()
-        
     }
     
+        func startTimer() {
+    
+            timerSubscription?.cancel()
+            playDing(for: "brightPing2")
+    
+            timerSubscription = Timer.publish(
+                every: 1,
+                on: .main,
+                in: .default
+            )
+            
+            .autoconnect()
+            .sink { _ in
+                currentWorkout?.oneSecondPasses()
+            }
+        }
     
     
-//    func startTimer() {
-//        
-//        timerSubscription?.cancel()
-//        playDing(for: "brightPing2")
-//        
-//        timerSubscription = Timer.publish(
-//            every: 1,
-//            on: .main,
-//            in: .default
-//        )
-//        .autoconnect()
-//        .sink { _ in
-//            if currentSet.secondsRemaining > 0 {
-//                currentSet.reduceSecond()
-//            } else {
-//                stopTimer()
-//            }
-//        }
-//    }
+    func pauseTimer() {
+        timerSubscription?.cancel()
+        timerSubscription = nil
+        playDing(for: "brightPing2")
+    }
     
-    
-//    func stopTimer() {
-//        timerSubscription?.cancel()
-//        timerSubscription = nil
-//        //        playDing(for: "brightPing2")
-//        // TODO: add stop timer mp3
-//    }
-    
-//    func resetTimer() {
-//        currentSet.resetTime()
-//        startTimer()
-//    }
     
     func playDing(for resourceName: String) {
         // Ensure the sound file exists
@@ -220,7 +182,5 @@ struct TimerView: View {
 
 #Preview {
     TimerView()
-        .environment(WorkoutManager(workoutSets: [TimedSet(minutes: 1), TimedSet(minutes: 1)],
-                                    restSets: [TimedSet(minutes: 2)]))
 //        .modelContainer(WorkoutModel.preview)
 }
