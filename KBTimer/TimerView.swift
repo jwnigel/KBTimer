@@ -36,7 +36,7 @@ struct TimerView: View {
                                 Text("Set")
                                     .font(.title2.weight(.medium))
                                     .frame(width: 50, alignment: .leading)
-                                ForEach(currentWorkout?.sets ?? [TimedSet(minutes: 0)]) { set in
+                                ForEach(currentWorkout?.sets.sorted(by: { $0.order < $1.order }) ?? [TimedSet(order: 1, minutes: 0)]) { set in
                                     ZStack {
                                         Circle()
                                             .fill(Gradient(colors: [.mint.opacity(0.2), .mint.opacity(0.4)]))
@@ -53,7 +53,7 @@ struct TimerView: View {
                                 Text("Rest")
                                     .font(.title2.weight(.medium))
                                     .frame(width: 50, alignment: .leading)
-                                ForEach(currentWorkout?.rests ?? [TimedSet(minutes: 0)], id: \.self) { rest in
+                                ForEach(currentWorkout?.rests?.sorted(by: { $0.order < $1.order }) ?? [TimedSet(order: 0, minutes: 0)], id: \.self) { rest in
                                     ZStack {
                                         Circle()
                                             .fill(Gradient(colors: [.blue.opacity(0.2), .blue.opacity(0.4)]))
@@ -64,9 +64,7 @@ struct TimerView: View {
                                             .font(.title3)
                                     }
                                     .shadow(radius: 2)
-
                                     .offset(x: 21 + 12 )  // 21 for half the frame width and 12 for half the horizontal spacing
-
                                 }
                             }
                         }
@@ -99,10 +97,12 @@ struct TimerView: View {
             }
             
             Spacer()
+            
         }
         .padding()
         .onAppear {
-            if let firstWorkout = workouts.first(where: { $0.isCompleted == false }) {
+            // workoutManager.getCurrentWorkout()
+            if let firstWorkout = workouts.sorted(by: { $0.order < $1.order }).first(where: { $0.isCompleted == false }) {
                 currentWorkout = firstWorkout
             }
         }

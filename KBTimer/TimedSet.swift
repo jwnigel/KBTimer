@@ -10,14 +10,15 @@ import SwiftData
 
 @Model
 class TimedSet {
-    var id = UUID()
+    let order: Int
     let minutes: Int
     var secondsRemaining: Int
     var isCompleted: Bool = false
     
-    init(minutes: Int, isCompleted: Bool = false) {
+    init(order: Int, minutes: Int, isCompleted: Bool = false) {
+        self.order = order
         self.minutes = minutes
-        self.secondsRemaining = minutes * 60
+        self.secondsRemaining = minutes * 10
         self.isCompleted = isCompleted
     }
 }
