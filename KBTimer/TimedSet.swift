@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 class TimedSet {
+    var id = UUID()
     let minutes: Int
     var secondsRemaining: Int
     var isCompleted: Bool = false
@@ -18,12 +19,5 @@ class TimedSet {
         self.minutes = minutes
         self.secondsRemaining = minutes * 60
         self.isCompleted = isCompleted
-    }
-}
-
-
-extension TimedSet {
-    var progress: CGFloat {
-        return max(0, min(1, CGFloat(secondsRemaining) / CGFloat(minutes * 60)))
     }
 }

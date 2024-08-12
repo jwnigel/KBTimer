@@ -10,40 +10,18 @@ import Combine
 import AVFoundation
 import SwiftData
 
-
 struct TimerView: View {
-
+    
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\WorkoutModel.order)]) var workouts: [WorkoutModel]
+    
     @State var currentWorkout: WorkoutModel?
-    @State var currentWorkoutSet: TimedSet?
     
     @State private var timerSubscription: Cancellable? = nil
     @State var timerStarted: Bool = false
     
-    init() {
-         if let firstWorkout = workouts.first(where: { !$0.isCompleted }) {
-             self._currentWorkout = State(initialValue: firstWorkout)
-             self._currentWorkoutSet = State(initialValue: firstWorkout.currentSet)
-         }
-     }
-    
     @State private var audioPlayer: AVAudioPlayer?
-        
-    private var formattedTime: String {
-        guard let currentSet = currentWorkout?.currentSet else {
-            return "00:00"
-        }
-        
-        let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .positional
-        formatter.allowedUnits = [.minute, .second]
-        formatter.zeroFormattingBehavior = .dropLeading
-        
-        let totalSeconds = currentSet.secondsRemaining
-        return formatter.string(from: TimeInterval(totalSeconds)) ?? "00:00"
-    }
-
+       
     var body: some View {
         
         VStack {
@@ -52,107 +30,101 @@ struct TimerView: View {
                 VStack(alignment: .leading) {
                     Grid(
                         alignment: .leading,
-                        horizontalSpacing: 25,
+                        horizontalSpacing: 24,
                         verticalSpacing: 16) {
                             GridRow {
                                 Text("Set")
                                     .font(.title2.weight(.medium))
                                     .frame(width: 50, alignment: .leading)
-                                ForEach(Array(currentWorkout?.sets ?? [TimedSet(minutes: 0)])) { set in
+                                ForEach(currentWorkout?.sets ?? [TimedSet(minutes: 0)]) { set in
                                     ZStack {
                                         Circle()
-                                            .stroke(set.isCompleted ? .indigo : Color(.white), 
-                                                    lineWidth: set.isCompleted ? 4 : 8)
-                                            .fill(.indigo.opacity(0.3))
+                                            .fill(Gradient(colors: [.mint.opacity(0.2), .mint.opacity(0.4)]))
+                                            .stroke(set.isCompleted ? .mint : Color(.white),
+                                                    lineWidth: 3)
                                             .frame(width: 42)
                                         Text("\(set.minutes)")
                                             .font(.title3)
                                     }
+                                    .shadow(radius: 2)
                                 }
                             }
                             GridRow {
                                 Text("Rest")
                                     .font(.title2.weight(.medium))
                                     .frame(width: 50, alignment: .leading)
-                                ForEach(Array(currentWorkout?.rests ?? [TimedSet(minutes: 0)]), id: \.self) { rest in
-                                    Text("\(rest)")
-                                        .font(.title3)
-                                    
+                                ForEach(currentWorkout?.rests ?? [TimedSet(minutes: 0)], id: \.self) { rest in
+                                    ZStack {
+                                        Circle()
+                                            .fill(Gradient(colors: [.blue.opacity(0.2), .blue.opacity(0.4)]))
+                                            .stroke(rest.isCompleted ? .blue : Color(.white),
+                                                    lineWidth: 3)
+                                            .frame(width: 42)
+                                        Text("\(rest.minutes)")
+                                            .font(.title3)
+                                    }
+                                    .shadow(radius: 2)
+
+                                    .offset(x: 21 + 12 )  // 21 for half the frame width and 12 for half the horizontal spacing
+
                                 }
-                                
                             }
                         }
-                    
-                    
                 }
                 Spacer()
             }
             .padding()
             .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
             
-            
             Spacer()
             
-            ZStack {
-                // Background Circle
-                Circle()
-                    .stroke(Color.yellow, lineWidth: 42)
-                    .frame(width: 290, height: 290)
-                
-                // Foreground Circle representing progress
-                Circle()
-                    .trim(from: 0, to: currentWorkoutSet?.progress ?? 0.5)
-                    .stroke(Color.indigo, style: StrokeStyle(lineWidth: 30, lineCap: .round))
-                    .frame(width: 290, height: 290)
-                    .rotationEffect(.degrees(-90)) // Start from the top
-                    .animation(.easeInOut(duration: 1.5), value: currentWorkoutSet?.progress)
-                
-                Text(timerStarted ? formattedTime : "Tap to begin")
-                    .font(.title)
-                    .foregroundStyle(.secondary)
-                    .shadow(radius: 10, x: -2, y: 2)
-            }
-
-
-//            .onTapGesture(count: 2) {
-//                resetTimer()
-//            }
-            
-            .onTapGesture {
-                if !timerStarted {
-                    startTimer()
-                    timerStarted = true
-                } else {
-                    pauseTimer()
+            if let currentWorkout = currentWorkout {
+                CircleCountdownView(
+                    workout: $currentWorkout,
+                    timerStarted: $timerStarted
+                )
+                .onTapGesture(count: 2) {
+                    resetTimer()
                     timerStarted = false
-                        
-                    
+                }
+                .onTapGesture {
+                    if !timerStarted {
+                        startTimer()
+                        timerStarted = true
+                    } else {
+                        pauseTimer()
+                        timerStarted = false
+                    }
                 }
             }
             
             Spacer()
-            
         }
         .padding()
+        .onAppear {
+            if let firstWorkout = workouts.first(where: { $0.isCompleted == false }) {
+                currentWorkout = firstWorkout
+            }
+        }
     }
     
-        func startTimer() {
-    
-            timerSubscription?.cancel()
-            playDing(for: "brightPing2")
-    
-            timerSubscription = Timer.publish(
-                every: 1,
-                on: .main,
-                in: .default
-            )
-            
+    func startTimer() {
+        timerSubscription?.cancel()
+        playDing(for: "brightPing2")
+        currentWorkout!.isBegun = true
+        currentWorkout!.updateCurrentSet()
+        
+        timerSubscription = Timer.publish(every: 1, on: .main, in: .default)
             .autoconnect()
             .sink { _ in
                 currentWorkout?.oneSecondPasses()
             }
-        }
+    }
     
+    func resetTimer() {
+        timerSubscription?.cancel()
+        currentWorkout!.currentSet!.secondsRemaining = currentWorkout!.currentSet!.minutes * 60
+    }
     
     func pauseTimer() {
         timerSubscription?.cancel()
@@ -160,15 +132,12 @@ struct TimerView: View {
         playDing(for: "brightPing2")
     }
     
-    
     func playDing(for resourceName: String) {
-        // Ensure the sound file exists
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp3") else {
             print("Sound file not found")
             return
         }
         
-        // Create an AVAudioPlayer instance and play the sound
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayer?.play()
@@ -178,9 +147,7 @@ struct TimerView: View {
     }
 }
 
-
-
 #Preview {
     TimerView()
-//        .modelContainer(WorkoutModel.preview)
+        .modelContainer(WorkoutModel.preview)
 }
