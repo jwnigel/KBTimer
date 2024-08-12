@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct KBTimerApp: App {
     var body: some Scene {
         WindowGroup {
             TimerView()
+                .modelContainer(WorkoutModel.preview)
         }
     }
 }

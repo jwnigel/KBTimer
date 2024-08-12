@@ -8,100 +8,136 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import SwiftData
 
-struct CircularProgressView: View {
-    @State private var audioPlayer: AVAudioPlayer?
-    private var progress: CGFloat {
-        return max(0, min(1, timeRemaining / totalTime))
-    }
-    @Binding var timerStarted: Bool
-    @State var totalTime: CGFloat
-    @State var timeRemaining: CGFloat
+struct TimerView: View {
+    
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: [SortDescriptor(\WorkoutModel.order)]) var workouts: [WorkoutModel]
+    
+    @State var currentWorkout: WorkoutModel?
+    
     @State private var timerSubscription: Cancellable? = nil
+    @State var timerStarted: Bool = false
     
-    
+    @State private var audioPlayer: AVAudioPlayer?
+       
     var body: some View {
         
-        ZStack {
-            // Background Circle
-            Circle()
-                .stroke(Color.gray.opacity(0.3), lineWidth: 42)
-                .frame(width: 300, height: 300)
+        VStack {
             
-            // Foreground Circle representing progress
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(Color.indigo, style: StrokeStyle(lineWidth: 35, lineCap: .round))
-                .frame(width: 300, height: 300)
-                .rotationEffect(.degrees(-90)) // Start from the top
-                .animation(.easeInOut(duration: 1.5), value: progress)
+            HStack {
+                VStack(alignment: .leading) {
+                    Grid(
+                        alignment: .leading,
+                        horizontalSpacing: 24,
+                        verticalSpacing: 16) {
+                            GridRow {
+                                Text("Set")
+                                    .font(.title2.weight(.medium))
+                                    .frame(width: 50, alignment: .leading)
+                                ForEach(currentWorkout?.sets ?? [TimedSet(minutes: 0)]) { set in
+                                    ZStack {
+                                        Circle()
+                                            .fill(Gradient(colors: [.mint.opacity(0.2), .mint.opacity(0.4)]))
+                                            .stroke(set.isCompleted ? .mint : Color(.white),
+                                                    lineWidth: 3)
+                                            .frame(width: 42)
+                                        Text("\(set.minutes)")
+                                            .font(.title3)
+                                    }
+                                    .shadow(radius: 2)
+                                }
+                            }
+                            GridRow {
+                                Text("Rest")
+                                    .font(.title2.weight(.medium))
+                                    .frame(width: 50, alignment: .leading)
+                                ForEach(currentWorkout?.rests ?? [TimedSet(minutes: 0)], id: \.self) { rest in
+                                    ZStack {
+                                        Circle()
+                                            .fill(Gradient(colors: [.blue.opacity(0.2), .blue.opacity(0.4)]))
+                                            .stroke(rest.isCompleted ? .blue : Color(.white),
+                                                    lineWidth: 3)
+                                            .frame(width: 42)
+                                        Text("\(rest.minutes)")
+                                            .font(.title3)
+                                    }
+                                    .shadow(radius: 2)
+
+                                    .offset(x: 21 + 12 )  // 21 for half the frame width and 12 for half the horizontal spacing
+
+                                }
+                            }
+                        }
+                }
+                Spacer()
+            }
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
             
-            // Percentage Label
-            Text(timerStarted ? String(format: "%.0f", timeRemaining) : "Tap to begin")
-                .font(.title)
-                .foregroundStyle(.secondary)
-                .shadow(radius: 10, x: -2, y: 2)
-        }
-        .onTapGesture(count: 2) {
-            resetTimer()
-        }
-        
-        .onTapGesture {
-            if !timerStarted {
-                startTimer()
-                timerStarted = true
-            } else {
-                stopTimer()
-                timerStarted = false
-                
+            Spacer()
+            
+            if let currentWorkout = currentWorkout {
+                CircleCountdownView(
+                    workout: $currentWorkout,
+                    timerStarted: $timerStarted
+                )
+                .onTapGesture(count: 2) {
+                    resetTimer()
+                    timerStarted = false
+                }
+                .onTapGesture {
+                    if !timerStarted {
+                        startTimer()
+                        timerStarted = true
+                    } else {
+                        pauseTimer()
+                        timerStarted = false
+                    }
+                }
             }
             
+            Spacer()
         }
-        
+        .padding()
+        .onAppear {
+            if let firstWorkout = workouts.first(where: { $0.isCompleted == false }) {
+                currentWorkout = firstWorkout
+            }
+        }
     }
-    
     
     func startTimer() {
-        
         timerSubscription?.cancel()
         playDing(for: "brightPing2")
+        currentWorkout!.isBegun = true
+        currentWorkout!.updateCurrentSet()
         
-        timerSubscription = Timer.publish(
-            every: 1,
-            on: .main,
-            in: .default
-        )
-        .autoconnect()
-        .sink { _ in
-            if timeRemaining > 0 {
-                timeRemaining -= 1
-            } else {
-                stopTimer()
+        timerSubscription = Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .sink { _ in
+                currentWorkout?.oneSecondPasses()
             }
-        }
-    }
-    
-    
-    func stopTimer() {
-        timerSubscription?.cancel()
-        timerSubscription = nil
-        //        playDing(for: "brightPing2")
-        // TODO: add stop timer mp3
     }
     
     func resetTimer() {
-        timeRemaining = totalTime
-        startTimer()
+        timerSubscription?.cancel()
+        currentWorkout!.currentSet!.secondsRemaining = currentWorkout!.currentSet!.minutes * 60
+    }
+    
+    func pauseTimer() {
+        timerSubscription?.cancel()
+        timerSubscription = nil
+        playDing(for: "brightPing2")
     }
     
     func playDing(for resourceName: String) {
-        // Ensure the sound file exists
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp3") else {
             print("Sound file not found")
             return
         }
         
-        // Create an AVAudioPlayer instance and play the sound
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayer?.play()
@@ -111,25 +147,7 @@ struct CircularProgressView: View {
     }
 }
 
-struct TimerView: View {
-    
-    @State var timerStarted: Bool = false
-    
-    var body: some View {
-        VStack {
-            CircularProgressView(
-                timerStarted: $timerStarted,
-                totalTime: 60,
-                timeRemaining: 60
-            )
-        }
-        .padding()
-    }
-    
-}
-
-
-
 #Preview {
     TimerView()
+        .modelContainer(WorkoutModel.preview)
 }
